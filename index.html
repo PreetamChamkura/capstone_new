@@ -622,6 +622,34 @@
     @media(max-width:430px){
       .app{width:100vw;height:100vh;box-shadow:none}
     }
+    /* ===== Next-ride route overlay + notifications (added) ===== */
+    .route-layer{position:absolute;left:0;top:0;width:100%;height:100%;z-index:2;pointer-events:none}
+    .route-glow{stroke:#0a78dc;stroke-width:3.6;fill:none;stroke-linecap:round;opacity:.16}
+    .route-line{stroke:#0a78dc;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:2.6 2.4}
+    .map-marker{position:absolute;transform:translate(-50%,-50%);z-index:3;pointer-events:none}
+    .marker-here .dot{width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid #0a78dc;box-shadow:0 0 0 5px rgba(10,120,220,.22),0 4px 10px rgba(0,0,0,.3)}
+    .marker-here .lbl{position:absolute;left:50%;top:-24px;transform:translateX(-50%);background:#16244a;color:#fff;font-size:10px;font-weight:800;padding:3px 7px;border-radius:8px;white-space:nowrap}
+    .marker-next{transform:translate(-50%,-100%);z-index:4;display:flex;flex-direction:column;align-items:center}
+    .marker-next .pin{width:42px;height:42px;border-radius:50%;background:#0a78dc;border:3px solid #fff;display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+    .marker-next .pin-tail{width:0;height:0;margin:-2px auto 0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid #fff;filter:drop-shadow(0 2px 1px rgba(0,0,0,.25))}
+    .marker-next .next-chip{margin-top:3px;background:#fff;color:#0a5da9;font-weight:800;font-size:11px;padding:5px 9px;border-radius:999px;box-shadow:0 6px 14px rgba(0,0,0,.28);white-space:nowrap;text-align:center;line-height:1.25}
+    .marker-next .next-chip small{display:block;color:#6b7789;font-weight:700;font-size:10px}
+
+    .map-notifs{position:absolute;left:12px;right:12px;top:92px;z-index:12;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .notif{position:relative;pointer-events:auto;background:#fff;border-radius:16px;box-shadow:0 14px 34px rgba(0,0,0,.28);padding:13px 14px;border-left:5px solid #0a78dc;animation:notif-in .25s ease}
+    .notif.warn{border-left-color:#e8933a}
+    .notif .n-title{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;padding-right:20px}
+    .notif .n-body{font-size:12.5px;color:#5a6577;margin-top:4px;line-height:1.4}
+    .notif .n-actions{display:flex;gap:8px;margin-top:11px}
+    .notif .n-actions button{flex:1;border:0;border-radius:10px;padding:9px 10px;font-weight:800;font-size:12.5px;cursor:pointer}
+    .notif .n-primary{background:#0a78dc;color:#fff}
+    .notif .n-warn{background:#e8933a;color:#fff}
+    .notif .n-ghost{background:#eef2f7;color:#26374d}
+    .notif .n-x{position:absolute;right:8px;top:8px;border:0;background:transparent;color:#9aa6b4;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px}
+    @keyframes notif-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+    .sim-btn{position:absolute;right:16px;bottom:230px;z-index:5;width:58px;height:58px;border:0;border-radius:50%;background:#fff;color:#e8873a;font-size:24px;box-shadow:0 10px 24px rgba(0,0,0,.22);cursor:pointer;display:grid;place-items:center}
+    .sim-btn:active{transform:translateY(1px)}
   </style>
 </head>
 <body>
@@ -821,6 +849,18 @@
 
     <section class="view active" id="mapView">
       <img class="screen-img" id="mapImage" src="main page.PNG" alt="Park map"/>
+      <svg class="route-layer" id="routeLayer" viewBox="0 0 100 100" preserveAspectRatio="none" hidden aria-hidden="true">
+        <path class="route-glow" id="routeGlow" d=""></path>
+        <path class="route-line" id="routeLine" d="">
+          <animate attributeName="stroke-dashoffset" from="10" to="0" dur="0.9s" repeatCount="indefinite"/>
+        </path>
+      </svg>
+      <div class="map-marker marker-here" id="markerHere" hidden><span class="lbl">You are here</span><span class="dot"></span></div>
+      <div class="map-marker marker-next" id="markerNext" hidden>
+        <div class="pin">📍</div>
+        <div class="pin-tail"></div>
+        <div class="next-chip" id="nextChip"></div>
+      </div>
       <button class="hotspot pin-dark" data-id="dark" aria-label="Dark Universe"></button>
       <button class="hotspot pin-nintendo" data-id="nintendo" aria-label="Super Nintendo World"></button>
       <button class="hotspot pin-potter" data-id="potter" aria-label="Ministry of Magic"></button>
@@ -829,6 +869,8 @@
 
       <button class="ai" id="aiBtn" aria-label="Open accessibility assistant">✦</button>
       <button class="itinerary-fab" id="openItinerary" aria-label="Open itinerary" title="Open itinerary">📅</button>
+      <button class="sim-btn" id="simBtn" title="Simulate a crowd alert" aria-label="Simulate a crowd alert">⚠️</button>
+      <div class="map-notifs" id="mapNotifs"></div>
       <div class="toast" id="toast"></div>
 
       <div class="backdrop" id="backdrop"></div>
@@ -1615,6 +1657,7 @@
     applyChatbotPreference();
     questionnaireView.classList.remove("active");
     mapView.classList.add("active");
+    onEnterMap();
   };
 
   renderParkPlanningFields();
@@ -2089,6 +2132,7 @@
   function switchView(from,to){
     from.classList.remove("active");
     to.classList.add("active");
+    if(to===mapView) onEnterMap();
   }
 
   document.getElementById("openItinerary").onclick=()=>{
@@ -2177,6 +2221,7 @@
     generatedPlan.sort((a,b)=>parseTime(a.time)-parseTime(b.time));
     renderItinerary();
     showToast(`${name} added to your itinerary`);
+    refreshRoute();
     closeSheet();
   };
   document.getElementById("directions").onclick=()=>{showToast("Accessible route preview started");closeSheet()};
@@ -2202,6 +2247,200 @@
       },450);
     };
   });
+  /* ===== Next-ride route overlay + notifications (added) ===== */
+  const routeLayer = document.getElementById("routeLayer");
+  const routeLine = document.getElementById("routeLine");
+  const routeGlow = document.getElementById("routeGlow");
+  const markerHere = document.getElementById("markerHere");
+  const markerNext = document.getElementById("markerNext");
+  const nextChip = document.getElementById("nextChip");
+  const mapNotifs = document.getElementById("mapNotifs");
+
+  // Ride positions on each park image (percent of screen: x from left, y from top).
+  const rideRoutePositions = {
+    "Epic Universe": {
+      _entrance:{x:50,y:93},
+      "Hiccup's Wing Gliders":{x:42,y:66},
+      "Dragon Racer's Rally":{x:38,y:71},
+      "Harry Potter and the Battle at the Ministry":{x:66,y:40},
+      "Celestial Park":{x:38,y:28},
+      "Super Nintendo World":{x:15,y:38},
+      "Dark Universe":{x:31,y:20}
+    },
+    "Islands of Adventure": {
+      _entrance:{x:48,y:93},
+      "Jurassic Park River Adventure":{x:59,y:41},
+      "Jurassic World Roller Coaster":{x:88,y:54},
+      "Skull Island: Reign of Kong":{x:18,y:43},
+      "Dudley Do-Right's Ripsaw Falls":{x:31,y:64}
+    },
+    "Universal Studios Florida": {
+      _entrance:{x:46,y:90},
+      "Hogwarts Express - King's Cross Station":{x:62,y:40},
+      "Harry Potter and the Escape from Gringotts":{x:67,y:46},
+      "Men in Black Alien Attack":{x:31,y:55}
+    }
+  };
+  const rideAreaByTitle = {
+    "Hiccup's Wing Gliders":"Isle of Berk",
+    "Dragon Racer's Rally":"Isle of Berk",
+    "Harry Potter and the Battle at the Ministry":"Ministry of Magic",
+    "Jurassic Park River Adventure":"Jurassic Park",
+    "Jurassic World Roller Coaster":"Jurassic Park",
+    "Skull Island: Reign of Kong":"Skull Island",
+    "Dudley Do-Right's Ripsaw Falls":"Toon Lagoon",
+    "Hogwarts Express - King's Cross Station":"Diagon Alley",
+    "Harry Potter and the Escape from Gringotts":"Diagon Alley",
+    "Men in Black Alien Attack":"World Expo"
+  };
+
+  let routeTargetOverride = null;
+  let lastReserveTipFor = null;
+
+  function currentMapPark(){ return answers.parks && answers.parks[0]; }
+  function parkTable(){ return rideRoutePositions[currentMapPark()] || {}; }
+  function ridePos(title){
+    if(!title) return null;
+    const t = parkTable();
+    if(t[title]) return t[title];
+    const k = Object.keys(t).find(key=>key!=="_entrance" && (title.includes(key)||key.includes(title)));
+    return k ? t[k] : null;
+  }
+  function stopKey(item){ return `${item.time}-${item.title}`; }
+  function isDone(item){ return checkedStops.has(stopKey(item)); }
+  function rideScoreStr(title){
+    const list = parkRideAccessibility[currentMapPark()] || [];
+    const m = list.find(r=>r.name===title);
+    return m ? m.score : "";
+  }
+  function mappableRideStops(){
+    return generatedPlan.filter(it=>isRideStop(it) && ridePos(it.title));
+  }
+  function nextRideStop(){
+    const stops = mappableRideStops().filter(it=>!isDone(it));
+    if(!stops.length) return null;
+    if(routeTargetOverride){
+      const ov = stops.find(s=>s.title===routeTargetOverride);
+      if(ov) return ov;
+    }
+    return stops[0];
+  }
+  function currentPosPoint(){
+    const done = mappableRideStops().filter(isDone);
+    if(done.length) return ridePos(done[done.length-1].title);
+    return parkTable()._entrance || {x:50,y:92};
+  }
+
+  // Draw ONLY the leg from the current position to the next ride (not the whole day).
+  function refreshRoute(){
+    if(!routeLayer) return;
+    const next = nextRideStop();
+    if(!next){
+      routeLayer.hidden = true; markerHere.hidden = true; markerNext.hidden = true;
+      return;
+    }
+    const from = currentPosPoint();
+    const to = ridePos(next.title);
+    const mx = (from.x+to.x)/2, my = (from.y+to.y)/2 - 7;
+    const d = `M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`;
+    routeLine.setAttribute("d", d);
+    routeGlow.setAttribute("d", d);
+    routeLayer.hidden = false;
+    markerHere.style.left = from.x+"%"; markerHere.style.top = from.y+"%"; markerHere.hidden = false;
+    markerNext.style.left = to.x+"%"; markerNext.style.top = to.y+"%"; markerNext.hidden = false;
+    const wait = getRideWaitMinutes(next.title);
+    const score = rideScoreStr(next.title);
+    nextChip.innerHTML = `Next: ${next.title}<small>${score?("Access "+score+" &middot; "):""}~${wait} min${next.time?(" &middot; "+next.time):""}</small>`;
+  }
+
+  // ----- Notifications -----
+  function clearNotifs(){ if(mapNotifs) mapNotifs.innerHTML = ""; }
+  function dismissNotif(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }
+  function pushNotif({icon,title,body,warn,actions}){
+    const el = document.createElement("div");
+    el.className = "notif" + (warn?" warn":"");
+    const acts = (actions||[]).map((a,i)=>`<button class="${a.cls||'n-ghost'}" data-i="${i}">${a.label}</button>`).join("");
+    el.innerHTML = `<button class="n-x" aria-label="Dismiss">&times;</button>
+      <div class="n-title">${icon||""} ${title}</div>
+      <div class="n-body">${body}</div>
+      ${acts?`<div class="n-actions">${acts}</div>`:""}`;
+    el.querySelector(".n-x").onclick = ()=>dismissNotif(el);
+    (actions||[]).forEach((a,i)=>{
+      const btn = el.querySelector(`button[data-i="${i}"]`);
+      if(btn) btn.onclick = ()=>{ dismissNotif(el); a.onClick && a.onClick(); };
+    });
+    mapNotifs.appendChild(el);
+    return el;
+  }
+
+  function showReserveNotif(){
+    const next = nextRideStop();
+    if(!next) return;
+    const key = stopKey(next);
+    if(reservedStops.has(key) || lastReserveTipFor === key) return;
+    lastReserveTipFor = key;
+    const wait = getRideWaitMinutes(next.title);
+    pushNotif({
+      icon:"🎟️", title:"You can reserve this ride",
+      body:`Skip the standby line at <b>${next.title}</b> &mdash; reserve a return time (about ${wait} min) instead of waiting in the queue.`,
+      actions:[
+        { label:"Reserve return time", cls:"n-primary", onClick:()=>reserveStop(next) },
+        { label:"Not now", cls:"n-ghost" }
+      ]
+    });
+  }
+  function reserveStop(stop){
+    reservedStops.add(stopKey(stop));
+    localStorage.setItem("reservedStops", JSON.stringify([...reservedStops]));
+    renderItinerary();
+    showToast(`Return time reserved for ${stop.title}`);
+  }
+
+  function pickAlternative(next){
+    const nextArea = rideAreaByTitle[next.title];
+    const alts = mappableRideStops().filter(it=>!isDone(it) && it.title!==next.title);
+    // Prefer a planned ride in a different area (actually avoids the crowded land).
+    const diffArea = alts.find(it=>rideAreaByTitle[it.title] && rideAreaByTitle[it.title]!==nextArea);
+    if(diffArea) return diffArea;
+    if(alts.length) return alts[alts.length-1];
+    const t = parkTable();
+    const names = Object.keys(t).filter(k=>k!=="_entrance" && k!==next.title && rideAreaByTitle[k]!==nextArea);
+    return names.length ? { title:names[0], time: next.time } : null;
+  }
+  function showRerouteNotif(){
+    const next = nextRideStop();
+    if(!next){ showToast("No upcoming ride to reroute."); return; }
+    const area = rideAreaByTitle[next.title] || next.title;
+    const alt = pickAlternative(next);
+    pushNotif({
+      icon:"⚠️", warn:true, title:"Heavy crowds ahead",
+      body:`Live sensors report <b>loud crowds building near ${area}</b>. ${alt?`Reroute to <b>${alt.title}</b> &mdash; a calmer nearby stop &mdash; for now?`:"Consider a quieter stop for now."}`,
+      actions: alt ? [
+        { label:`Reroute to ${alt.title.split(":")[0]}`, cls:"n-warn", onClick:()=>doReroute(alt) },
+        { label:"Keep my route", cls:"n-ghost" }
+      ] : [ { label:"OK", cls:"n-ghost" } ]
+    });
+  }
+  function doReroute(alt){
+    routeTargetOverride = alt.title;
+    lastReserveTipFor = null;
+    refreshRoute();
+    showToast(`Rerouted &mdash; heading to ${alt.title} next`);
+    setTimeout(showReserveNotif, 700);
+  }
+
+  function onEnterMap(){
+    if(routeTargetOverride && !mappableRideStops().some(it=>it.title===routeTargetOverride && !isDone(it))){
+      routeTargetOverride = null;
+    }
+    refreshRoute();
+    clearNotifs();
+    clearTimeout(window._reserveTipT);
+    window._reserveTipT = setTimeout(showReserveNotif, 900);
+  }
+
+  const simBtn = document.getElementById("simBtn");
+  if(simBtn) simBtn.onclick = showRerouteNotif;
 </script>
 </body>
 </html>
