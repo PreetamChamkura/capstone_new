@@ -1,5 +1,21 @@
 Accessible Park Planner v2 (with OpenAI support)
 
+LIVE DEMO (no install, public link):
+  https://preetamchamkura.github.io/capstone_new/
+  The hosted version runs without the server: AI ride suggestions and AI
+  itinerary generation are skipped and the built-in ride lists + local
+  itinerary logic are used. Full AI features require running the server below.
+
+MAP ROUTE + NOTIFICATIONS:
+  - The map draws a route to ONLY your next ride ("You are here" -> next stop)
+    and advances automatically as you check stops off, instead of showing every
+    direction at once.
+  - A pop-up offers to reserve/queue your upcoming ride.
+  - The warning (!) button simulates a crowd alert and offers to reroute to a
+    calmer ride in a different area.
+
+--- Run the full app locally (with AI) ---
+
 1. Open a terminal in this folder.
 2. Install dependencies:
 	npm install
