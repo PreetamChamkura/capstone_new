@@ -2259,7 +2259,7 @@
   // Ride positions on each park image (percent of screen: x from left, y from top).
   const rideRoutePositions = {
     "Epic Universe": {
-      _entrance:{x:50,y:93},
+      _entrance:{x:52,y:82},
       "Hiccup's Wing Gliders":{x:42,y:66},
       "Dragon Racer's Rally":{x:38,y:71},
       "Harry Potter and the Battle at the Ministry":{x:66,y:40},
@@ -2268,14 +2268,14 @@
       "Dark Universe":{x:31,y:20}
     },
     "Islands of Adventure": {
-      _entrance:{x:48,y:93},
+      _entrance:{x:48,y:84},
       "Jurassic Park River Adventure":{x:59,y:41},
       "Jurassic World Roller Coaster":{x:88,y:54},
       "Skull Island: Reign of Kong":{x:18,y:43},
       "Dudley Do-Right's Ripsaw Falls":{x:31,y:64}
     },
     "Universal Studios Florida": {
-      _entrance:{x:46,y:90},
+      _entrance:{x:46,y:82},
       "Hogwarts Express - King's Cross Station":{x:62,y:40},
       "Harry Potter and the Escape from Gringotts":{x:67,y:46},
       "Men in Black Alien Attack":{x:31,y:55}
@@ -2328,7 +2328,7 @@
   function currentPosPoint(){
     const done = mappableRideStops().filter(isDone);
     if(done.length) return ridePos(done[done.length-1].title);
-    return parkTable()._entrance || {x:50,y:92};
+    return parkTable()._entrance || {x:50,y:82};
   }
 
   // Draw ONLY the leg from the current position to the next ride (not the whole day).
